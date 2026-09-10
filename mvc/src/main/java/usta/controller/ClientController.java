@@ -10,11 +10,13 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import usta.model.Client;
 import usta.model.ClientRepository;
+import usta.model.Product;
 import usta.model.ProductRepository;
 
 import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Path("/clientes")
@@ -97,12 +99,37 @@ public class ClientController {
     }
 
     private void syncPurchasedProducts(Client client, List<Long> productIds){
-        // Se sincroniza la colección: se limpian las asignaciones previas
-        // y se agregan únicamente los productos marcados en el formulario.
-        new HashSet<>(client.getPurchasedProducts()).forEach(client::removeProduct);
+        // Se compara la selección anterior contra la nueva para mover el stock:
+        // los productos que se agregan descuentan 1 unidad (validando que haya stock);
+        // los que se quitan devuelven 1 unidad. Los que no cambian, se dejan igual.
+        Set<Long> previousIds = new HashSet<>();
+        for (Product product : client.getPurchasedProducts()){
+            previousIds.add(product.getId());
+        }
+        Set<Long> selectedIds = new HashSet<>();
         if (productIds != null){
-            for (Long productId : productIds){
-                productRepository.findByIdOptional(productId).ifPresent(client::addProduct);
+            selectedIds.addAll(productIds);
+        }
+
+        // Productos que se quitan: se devuelve el stock.
+        for (Product product : new HashSet<>(client.getPurchasedProducts())){
+            if (!selectedIds.contains(product.getId())){
+                product.setStock(product.getStock() + 1);
+                client.removeProduct(product);
+            }
+        }
+
+        // Productos que se agregan: se valida y se descuenta el stock.
+        for (Long productId : selectedIds){
+            if (!previousIds.contains(productId)){
+                Product product = productRepository.findByIdOptional(productId)
+                        .orElseThrow(() -> new jakarta.ws.rs.BadRequestException("Producto no encontrado"));
+                if (product.getStock() == null || product.getStock() <= 0){
+                    throw new jakarta.ws.rs.BadRequestException(
+                            "No hay stock disponible del producto \"" + product.getName() + "\"");
+                }
+                product.setStock(product.getStock() - 1);
+                client.addProduct(product);
             }
         }
     }

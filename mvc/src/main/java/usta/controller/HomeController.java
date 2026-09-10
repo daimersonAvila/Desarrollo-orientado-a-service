@@ -1,9 +1,9 @@
-// src/main/java/usta/controller/HomeController.java
 package usta.controller;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
+
 import java.net.URI;
 
 @Path("/")

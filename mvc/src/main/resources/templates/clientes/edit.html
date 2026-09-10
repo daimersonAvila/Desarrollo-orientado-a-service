@@ -35,11 +35,30 @@
                         <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
                             {#for product in products}
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="productos"
-                                       id="producto-{product.id}" value="{product.id}"
-                                       checked?={client.purchasedProducts.contains(product)}>
+                                {#if product.stock == 0}
+                                    {#if client.purchasedProducts.contains(product)}
+                                    <input class="form-check-input" type="checkbox" name="productos"
+                                           id="producto-{product.id}" value="{product.id}" checked>
+                                    {#else}
+                                    <input class="form-check-input" type="checkbox" name="productos"
+                                           id="producto-{product.id}" value="{product.id}" disabled>
+                                    {/if}
+                                {#else}
+                                    {#if client.purchasedProducts.contains(product)}
+                                    <input class="form-check-input" type="checkbox" name="productos"
+                                           id="producto-{product.id}" value="{product.id}" checked>
+                                    {#else}
+                                    <input class="form-check-input" type="checkbox" name="productos"
+                                           id="producto-{product.id}" value="{product.id}">
+                                    {/if}
+                                {/if}
                                 <label class="form-check-label" for="producto-{product.id}">
                                     {product.name} &mdash; {product.price}
+                                    {#if product.stock == 0}
+                                        <span class="badge bg-secondary">Agotado</span>
+                                    {#else}
+                                        <span class="text-muted">(Stock: {product.stock})</span>
+                                    {/if}
                                 </label>
                             </div>
                             {/for}
